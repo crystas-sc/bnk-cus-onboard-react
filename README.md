@@ -1,3 +1,10 @@
+ ```
+ python lang_graph_http_server.py 
+ curl -X POST http://localhost:8000/chat      -H "Content-Type: application/json"      -d '{"user_id": "rob42", "thread_id": "alpha-42", "input": "What is the  price of KSOLVES?"}'
+ ```
+
+
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
