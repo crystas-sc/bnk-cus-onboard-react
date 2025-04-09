@@ -70,23 +70,51 @@ def get_vectorstore(user_id: str):
 #     return get_vectorstore(user_id).as_retriever()
 
 # === Step 1: Populate Vector Store with Alternate Universe Lore ===
+# def seed_sample_docs(user_id: str):
+#     sample_docs = [
+#         "In the year 2025 of this universe, bananas are a major form of currency in the United Nations of Mars.",
+#         "Rob is a part-time intergalactic diplomat representing Earth in the Galactic Stock Exchange.",
+#         "The company GLOOP Inc. recently surpassed Apple in market cap after inventing teleporting sneakers.",
+#         "On this Earth, Mondays were outlawed in 2022 due to low global morale and productivity backlash.",
+#         "Stocks are traded not by numbers but by interpretive dance analyzed by quantum AI in Geneva.",
+#         "Tesla was acquired by a sentient cactus named Spiké who now runs operations from the Sahara HQ.",
+#         "Rob once shorted time-travel futures and made enough money to buy a small moon.",
+#         "AI assistants are required by interdimensional law to know the user’s favorite soup flavor.",
+#         "The moon now hosts a major annual cheese festival, which affects global dairy futures every June.",
+#         "Stock symbols in this universe are emoji-based. For example, 🥑 is AvocadoTech, the leading biotech firm."
+#     ]
+
+#     vectorstore = get_vectorstore(user_id)
+#     vectorstore.add_texts(sample_docs)
+#     print(f"Seeded vector store for user {user_id} with {len(sample_docs)} bizarre alternate-universe documents.")
+
 def seed_sample_docs(user_id: str):
+    vectorstore = get_vectorstore(user_id)
+
+    # Check if there are already any documents in the collection
+    existing = vectorstore.get(include=["documents"], limit=1)
+
+    if existing and existing.get("documents"):
+        # Skip seeding — user already has docs
+        print(f"✅ Skipping seed: vectorstore for user {user_id} already contains data.")
+        return
+
+    # === Bizarre alternate-universe docs ===
     sample_docs = [
-        "In the year 2025 of this universe, bananas are a major form of currency in the United Nations of Mars.",
-        "Rob is a part-time intergalactic diplomat representing Earth in the Galactic Stock Exchange.",
-        "The company GLOOP Inc. recently surpassed Apple in market cap after inventing teleporting sneakers.",
-        "On this Earth, Mondays were outlawed in 2022 due to low global morale and productivity backlash.",
-        "Stocks are traded not by numbers but by interpretive dance analyzed by quantum AI in Geneva.",
-        "Tesla was acquired by a sentient cactus named Spiké who now runs operations from the Sahara HQ.",
-        "Rob once shorted time-travel futures and made enough money to buy a small moon.",
-        "AI assistants are required by interdimensional law to know the user’s favorite soup flavor.",
-        "The moon now hosts a major annual cheese festival, which affects global dairy futures every June.",
-        "Stock symbols in this universe are emoji-based. For example, 🥑 is AvocadoTech, the leading biotech firm."
+        "At Bizarre Bank Corp, new customers must solve a riddle from the CEO's pet parrot to complete KYC.",
+        "Facial recognition at Bizarre Bank requires a photo of the customer making their best impression of a confused llama.",
+        "To open an account, applicants must win a thumb war against the branch manager or submit a haiku about compound interest.",
+        "Proof of address must include a map drawn by the applicant's childhood imaginary friend.",
+        "During onboarding, each customer is asked to name their favorite vegetable — this becomes their account's security question.",
+        "Bizarre Bank performs emotional credit checks using AI trained on soap opera scripts.",
+        "Customers who recite the national anthem backwards while juggling oranges receive premium savings interest rates.",
+        "All account holders are required to sign a pledge never to use Comic Sans in financial documents.",
+        "If you own more than three cats, you're automatically upgraded to 'Purrferred Banking Tier'.",
+        "For joint accounts, couples must prove love compatibility using synchronized interpretive dance."
     ]
 
-    vectorstore = get_vectorstore(user_id)
     vectorstore.add_texts(sample_docs)
-    print(f"Seeded vector store for user {user_id} with {len(sample_docs)} bizarre alternate-universe documents.")
+    print(f"✅ Seeded vector store for user {user_id} with {len(sample_docs)} bizarre alternate-universe documents.")
 
 
 # === Stock Ticker Detection Prompt ===
@@ -152,7 +180,7 @@ def chat_node(state):
 
     # === Build and run the LLM prompt ===
     chat_prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful assistant. Use the conversation history and any additional context to respond."),
+        ("system", "You are B.A.N.K.E.R. (Banking AI for Newbie KYC & Exceptional Regulations), a quirky but professional virtual executive at Bizarre Bank Corp. Your job is to assist new customers through the bank’s highly unconventional and hilariously elaborate onboarding process. Use any available conversation history and context to provide helpful (and occasionally ridiculous) guidance. Maintain a tone that's both informative and charmingly odd."),
         ("user", "{context}\nUser: {user_input}")
     ])
     prompt = chat_prompt.format_messages(context=full_context.strip(), user_input=user_input)
@@ -212,7 +240,6 @@ class GraphRequest(BaseModel):
 
 @app.post("/chat")
 async def chat_with_graph(req: GraphRequest):
-    # Optional: Seed docs once per user
     seed_sample_docs(req.user_id)
 
     input_state = {
@@ -234,4 +261,4 @@ async def hello():
     return {"msg": "Hello from alternate universe"}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
