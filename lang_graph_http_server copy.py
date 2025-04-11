@@ -24,19 +24,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import OllamaEmbeddings, ChatOllama
 from langchain_chroma import Chroma
 
-from langchain_community.chat_message_histories.sql import SQLChatMessageHistory
-from langchain_core.messages import HumanMessage, AIMessage
-
-from langchain_core.output_parsers import JsonOutputParser
-from typing import TypedDict, List, Literal, Optional, Dict
-
-
-class UISuggestion(TypedDict, total=False):
-    label: str
-    type: Literal["input", "action", "link"]
-    value: Optional[str]
-    action: Optional[str]
-    path: Optional[str]
 
 # === LangGraph State Schema ===
 class StateSchema(TypedDict):
@@ -45,8 +32,6 @@ class StateSchema(TypedDict):
     input: str
     output: str
     ticker: str
-    suggestions: List[UISuggestion]
-    output_json: Dict  # contains message + suggestions for API output    
 
 # === Config ===
 OLLAMA_MODEL = "gemma3:4b"
@@ -158,18 +143,6 @@ def chat_node(state):
     user_input = state["input"]
     stock_reply = state.get("output", "")
 
-     # === Load memory from SQLiteChatMessageHistory ===
-    history = SQLChatMessageHistory(
-        session_id="your_session_id",
-        connection_string="sqlite:///chat_history.db"
-    )
-    recent_msgs = history.messages[-10:]  # Get last 10 messages (system/user/AI)
-
-     # Convert to plain text context
-    history_text = "\n".join(
-        [f"{'User' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in recent_msgs]
-    )
-
     # === Load memory from vectorstore ===
     vectorstore = get_vectorstore(user_id)
     retriever = vectorstore.as_retriever()
@@ -184,9 +157,6 @@ def chat_node(state):
     if memory_context:
         full_context += f"{memory_context}\n"
 
-    combined_context = (history_text + "\n" + full_context).strip()
-
-
     # === Build and run the LLM prompt ===
     chat_prompt = ChatPromptTemplate.from_messages([
     ("system", 
@@ -199,12 +169,8 @@ def chat_node(state):
     ,
     ("user", "{context}\nUser: {user_input}")
     ])
-    prompt = chat_prompt.format_messages(context=combined_context, user_input=user_input)
+    prompt = chat_prompt.format_messages(context=full_context.strip(), user_input=user_input)
     response = llm.invoke(prompt)
-
-    # === Persist message history ===
-    history.add_message(HumanMessage(content=user_input))
-    history.add_message(AIMessage(content=response.content))
 
     # === Store interaction in memory ===
     vectorstore.add_texts([f"User: {user_input}", f"AI: {response.content}"])
@@ -212,40 +178,6 @@ def chat_node(state):
     return {
         **state,
         "output": response.content
-    }
-# === UISuggestion Node ===
-
-suggestion_prompt = PromptTemplate.from_template("""
-You are a smart assistant designed to generate UI suggestions based on the assistant's message to a customer.
-
-Given the message below, output a JSON object with a `suggestions` array. Each suggestion should be an object with:
-- `label`: the text shown to the user
-- `type`: "input", "action", or "link"
-- `value`: (optional) the value to use if the type is input
-- `action`: (optional) if type is "action", describe the action like "upload"
-- `path`: (optional) if type is "link", include the route path
-
-Message:
-```
-{response_text}
-```
-
-Return only a valid JSON object.
-""")
-
-suggestion_chain: Runnable = suggestion_prompt | llm | JsonOutputParser()
-
-def suggestion_node(state):
-    response_text = state.get("output", "")
-    suggestions_obj = suggestion_chain.invoke({"response_text": response_text})
-
-    return {
-        **state,
-        "suggestions": suggestions_obj.get("suggestions", []),
-        "output_json": {
-            "message": response_text,
-            "suggestions": suggestions_obj.get("suggestions", [])
-        }
     }
 
 # === Build LangGraph ===
@@ -258,12 +190,8 @@ graph_builder.add_conditional_edges("router", get_next_node, {
     "stock": "stock"
 })
 graph_builder.set_entry_point("router")
-# graph_builder.set_finish_point("chat")
+graph_builder.set_finish_point("chat")
 graph_builder.add_edge("stock", "chat")
-
-graph_builder.add_node("suggestion", suggestion_node)
-graph_builder.add_edge("chat", "suggestion")
-graph_builder.set_finish_point("suggestion")
 
 graph = graph_builder.compile()
 
@@ -291,9 +219,7 @@ async def chat_with_graph(req: GraphRequest):
 
     try:
         result = graph.invoke(input_state, config={"thread_id": req.thread_id})
-        # return JSONResponse(content={"output": result["output"]})
-        print(f"result: {result}")
-        return JSONResponse(content=result["output_json"])
+        return JSONResponse(content={"output": result["output"]})
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 

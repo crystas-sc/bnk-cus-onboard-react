@@ -134,13 +134,16 @@ const ChatWidget = ({ onRoute }: { onRoute?: (route: string) => void }) => {
 
       try {
         //   const aiResponse = await mockAIChatAPI.sendMessage(input);
-            const aiResponse = await fetch('/api/chat', {
+            let aiResponse = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({"user_id": "rob42", "thread_id": "alpha-42", "input": input}),
-            }).then((res) => res.json());
+            }).then((res) => res.text());
+            console.log("AI response", aiResponse);
+            aiResponse = JSON.parse(aiResponse);
+            
           setMessages((prevMessages) => [...prevMessages, {text:aiResponse.output, sender:"ai"}]);
           if (aiResponse.route && onRoute) {
               onRoute(aiResponse.route);
