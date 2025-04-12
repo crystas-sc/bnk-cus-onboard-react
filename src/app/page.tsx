@@ -113,11 +113,6 @@ const ChatWidget = ({ onRoute }: { onRoute?: (route: string) => void }) => {
   const [input, setInput] = useState('');
   const [isAITyping, setIsAITyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-//   const suggestionButtons = [
-//       { label: 'KYC', route: 'kyc' },
-//       { label: 'Account Setup', route: 'account_setup' },
-//       { label: 'Loan Application', route: 'loan_application' },
-//   ];
   const [suggestionButtons, setSuggestionButtons] = useState([]);
 
   const socketRef = useRef(null) // 👈 This line declares the WebSocket ref
@@ -131,42 +126,43 @@ const ChatWidget = ({ onRoute }: { onRoute?: (route: string) => void }) => {
   // Scroll to bottom on new message
   useEffect(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    
   }, [messages]);
 
   useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
-    const host = window.location.host
-    socketRef.current = new WebSocket(`${protocol}://${host}/socket`)
-  
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const host = window.location.host;
+    socketRef.current = new WebSocket(`${protocol}://${host}/socket`);
+
     socketRef.current.onopen = () => {
-      console.log('WebSocket connected')
-      const message = structuredClone(msgJson)
-      message.input = "Hi"
-      socketRef.current.send(JSON.stringify(message))
-    }
-  
+      console.log('WebSocket connected');
+      const message = structuredClone(msgJson);
+      message.input = "Hi";
+      socketRef.current.send(JSON.stringify(message));
+      setMessages((prevMessages) => [...prevMessages, { text: "Connecting... my sophisticated (and slightly slow) response will arrive in approximately 5 minutes.", sender: "ai" }]);
+        setIsAITyping(true);
+    };
+
     socketRef.current.onmessage = (event) => {
-      console.log('Message from server:', event.data)
-      const msg = JSON.parse(event.data)
-    //   setMessages(prev => [...prev, event.data])
-        setMessages((prevMessages) => [...prevMessages, {text:msg.message, sender:"ai"}]);
-        setSuggestionButtons(msg.suggestions);
-        setIsAITyping(false);
-    
-    }
-  
+      console.log('Message from server:', event.data);
+      const msg = JSON.parse(event.data);
+      setMessages((prevMessages) => [...prevMessages, { text: msg.message, sender: "ai" }]);
+      setSuggestionButtons(msg.suggestions);
+      setIsAITyping(false);
+    };
+
     socketRef.current.onclose = () => {
-      console.log('WebSocket disconnected')
-    }
-  
+      console.log('WebSocket disconnected');
+    };
+
     socketRef.current.onerror = (err) => {
-      console.error('WebSocket error:', err)
-    }
-  
+      console.error('WebSocket error:', err);
+    };
+
     return () => {
-      socketRef.current.close()
-    }
-  }, [])
+      socketRef.current.close();
+    };
+  }, []);
 
   const handleSendMessage = useCallback(async () => {
       if (!input.trim()) return;
@@ -179,39 +175,22 @@ const ChatWidget = ({ onRoute }: { onRoute?: (route: string) => void }) => {
       const message = structuredClone(msgJson)
       message.input = input
       socketRef.current.send(JSON.stringify(message))
-      return;
 
-      try {
-        //   const aiResponse = await mockAIChatAPI.sendMessage(input);
-            let aiResponse = await fetch('/api/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({"user_id": "rob42", "thread_id": "alpha-42", "input": input}),
-            }).then((res) => res.text());
-            console.log("AI response", aiResponse);
-            aiResponse = JSON.parse(aiResponse);
-            
-          setMessages((prevMessages) => [...prevMessages, {text:aiResponse.output, sender:"ai"}]);
-          if (aiResponse.route && onRoute) {
-              onRoute(aiResponse.route);
-          }
-      } catch (error) {
-          console.error('Error sending message:', error);
-          const errorMessage = {
-              text: 'Sorry, there was an error processing your request.',
-              sender: 'ai',
-          };
-          setMessages((prevMessages) => [...prevMessages, errorMessage]);
-      } finally {
-          setIsAITyping(false);
-      }
-  }, [input, onRoute]);
+     
+  }, [input]);
 
-  const handleSuggestionClick = (route: string) => {
-      onRoute?.(route);
+  const handleSuggestionClick = (button) => {
+    if (button.type === 'input') {
+    const userMessage = { text: button.label, sender: 'user' };
+    setMessages((prevMessages) => [...prevMessages, userMessage]);
+      setIsAITyping(true);
+      const message = structuredClone(msgJson);
+      message.input = button.label;
+      socketRef.current.send(JSON.stringify(message));
+    } else if (button.type === 'path') {
+      onRoute?.(button.label);
       setIsChatOpen(false);
+    }
   };
 
   return (
@@ -244,7 +223,7 @@ const ChatWidget = ({ onRoute }: { onRoute?: (route: string) => void }) => {
               {suggestionButtons.map((button) => (
                   <Button
                       key={button.route}
-                      onClick={() => handleSuggestionClick(button.route)}
+                      onClick={() => handleSuggestionClick(button)}
                       className="bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 hover:text-purple-200 rounded-full px-4 py-2 transition-colors"
                   >
                       {button.label}

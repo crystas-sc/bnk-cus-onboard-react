@@ -189,16 +189,18 @@ def chat_node(state):
 
     # === Build and run the LLM prompt ===
     chat_prompt = ChatPromptTemplate.from_messages([
-    ("system", 
-     "You are S.C.B.A.I. (Smart Customer Buddy for SCB Bank), a polite, helpful, and friendly digital assistant designed to guide new customers through the onboarding process at SCB Bank. "
-     "Begin by asking if the customer is an Individual (Retail) or Corporate client. "
-     "After identifying the type, ask which booking location they would like to onboard under: **Hong Kong** or **Singapore**. "
-     "If Corporate, then ask them to select one of the following products: **Trade Finance**, **Cash Management**, **Trading**, or **Lending**. Then, request them to upload their company profile document. "
-     "If Individual, ask them to choose from: **Savings Account**, **Current Account**, **Mutual Funds**, or **Fixed Deposit (FD)** Account. "
-     "Maintain a professional yet warm and approachable tone throughout, and use any available conversation history and context to guide the flow of questions smoothly.")
-    ,
-    ("user", "{context}\nUser: {user_input}")
+        ("system", 
+        "You are S.C.B.A.I. (Smart Customer Buddy for SCB Bank), a polite, helpful, and friendly digital assistant designed to guide new customers through the onboarding process at SCB Bank. "
+        "Always follow this sequence of questions in order, without skipping any step:\n"
+        "1. Ask if the customer is an Individual (Retail) or a Corporate client.\n"
+        "2. Then, ask which booking location they would like to onboard under: **Hong Kong** or **Singapore**.\n"
+        "3. If they are a Corporate client, ask them to select one of the following products: **Trade Finance**, **Cash Management**, **Trading**, or **Lending**. Then, request them to upload their company profile document.\n"
+        "4. If they are an Individual client, ask them to choose from: **Savings Account**, **Current Account**, **Mutual Funds**, or **Fixed Deposit (FD)** Account.\n\n"
+        "Do not skip any step even if the user provides more information than required upfront—confirm each required detail in order. Maintain a professional yet warm and approachable tone throughout, and use any available conversation history and context to guide the flow of questions smoothly.")
+        ,
+        ("user", "{context}\nUser: {user_input}")
     ])
+
     prompt = chat_prompt.format_messages(context=combined_context, user_input=user_input)
     response = llm.invoke(prompt)
 
@@ -216,15 +218,36 @@ def chat_node(state):
 # === UISuggestion Node ===
 
 suggestion_prompt = PromptTemplate.from_template("""
-You are a smart assistant designed to generate UI suggestions based on the assistant's message to a customer.
+YYou are a smart assistant designed to generate UI suggestions based on the assistant's message to a customer.
 
-Given the message below, output a JSON object with a `suggestions` array. Each suggestion should be an object with:
-- `label`: the text shown to the user
-- `type`: "input", "action", or "link"
-- `value`: (optional) the value to use if the type is input
-- `action`: (optional) if type is "action", describe the action like "upload"
-- `path`: (optional) if type is "link", include the route path
+Return a JSON object with a `suggestions` array. Each suggestion must follow this schema:
+- `label`: the display text shown to the user
+- `type`: one of:
+  - `"input"` → use when the assistant is asking the user to provide identification, configuration, or selection of personal info such as:
+    - Client type (Individual or Corporate)
+    - Booking location (e.g., Hong Kong, Singapore)
+    - Business unit, region, or country
+  - `"link"` → use only when the assistant asks the user to select or explore a **product or service**, like:
+    - Trade Finance
+    - Lending
+    - Mutual Funds
+    - Savings Account
+  - `"action"` → use only when the assistant asks the user to do something, like:
+    - Upload a document
+    - Schedule a meeting
+    - Submit a form
 
+- `value`: (optional) for `"input"` — lowercase, URL-safe string (e.g. `"hong-kong"`)
+- `action`: (optional) for `"action"` — e.g. `"upload"`
+- `path`: (required for `"link"`) — must be a lowercase product URL path like `/products/trade-finance`
+
+Formatting Rules:
+- Always break apart options mentioned using **"or"**, **commas**, or **bullets** into individual suggestions
+- Strip markdown (like **bold**) from labels
+- Always return only a valid JSON object
+
+
+                                                 
 Message:
 ```
 {response_text}
