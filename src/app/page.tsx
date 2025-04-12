@@ -2,6 +2,7 @@
 import Image from "next/image";
 import styles from "./page.module.css";
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -100,7 +101,7 @@ const ChatMessage = ({ message }: { message: { text: string; sender: 'user' | 'a
                   'shadow-md'
               )}
           >
-              <p className="text-sm whitespace-pre-wrap break-words">{message.text}</p>
+              <ReactMarkdown >{message.text}</ReactMarkdown>
           </div>
           {message.sender === 'user' && getMessageIcon('user')}
       </motion.div>
