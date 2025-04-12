@@ -257,7 +257,9 @@ graph_builder.add_conditional_edges("router", get_next_node, {
     "chat": "chat",
     "stock": "stock"
 })
-graph_builder.set_entry_point("router")
+# graph_builder.set_entry_point("router")
+# graph_builder.set_finish_point("chat")
+graph_builder.set_entry_point("chat")
 # graph_builder.set_finish_point("chat")
 graph_builder.add_edge("stock", "chat")
 

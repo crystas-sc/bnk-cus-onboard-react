@@ -113,24 +113,73 @@ const ChatWidget = ({ onRoute }: { onRoute?: (route: string) => void }) => {
   const [input, setInput] = useState('');
   const [isAITyping, setIsAITyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const suggestionButtons = [
-      { label: 'KYC', route: 'kyc' },
-      { label: 'Account Setup', route: 'account_setup' },
-      { label: 'Loan Application', route: 'loan_application' },
-  ];
+//   const suggestionButtons = [
+//       { label: 'KYC', route: 'kyc' },
+//       { label: 'Account Setup', route: 'account_setup' },
+//       { label: 'Loan Application', route: 'loan_application' },
+//   ];
+  const [suggestionButtons, setSuggestionButtons] = useState([]);
+
+  const socketRef = useRef(null) // 👈 This line declares the WebSocket ref
+  const [msgJson, setMsgJson] = useState({
+    user_id: "rob42",
+    thread_id: "alpha-42",
+    input: ""
+  }) // 👈 This line declares the message JSON state
+
 
   // Scroll to bottom on new message
   useEffect(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+    const host = window.location.host
+    socketRef.current = new WebSocket(`${protocol}://${host}/socket`)
+  
+    socketRef.current.onopen = () => {
+      console.log('WebSocket connected')
+      const message = structuredClone(msgJson)
+      message.input = "Hi"
+      socketRef.current.send(JSON.stringify(message))
+    }
+  
+    socketRef.current.onmessage = (event) => {
+      console.log('Message from server:', event.data)
+      const msg = JSON.parse(event.data)
+    //   setMessages(prev => [...prev, event.data])
+        setMessages((prevMessages) => [...prevMessages, {text:msg.message, sender:"ai"}]);
+        setSuggestionButtons(msg.suggestions);
+        setIsAITyping(false);
+    
+    }
+  
+    socketRef.current.onclose = () => {
+      console.log('WebSocket disconnected')
+    }
+  
+    socketRef.current.onerror = (err) => {
+      console.error('WebSocket error:', err)
+    }
+  
+    return () => {
+      socketRef.current.close()
+    }
+  }, [])
+
   const handleSendMessage = useCallback(async () => {
       if (!input.trim()) return;
+    
 
       const userMessage = { text: input, sender: 'user' };
       setMessages((prevMessages) => [...prevMessages, userMessage]);
       setInput('');
       setIsAITyping(true);
+      const message = structuredClone(msgJson)
+      message.input = input
+      socketRef.current.send(JSON.stringify(message))
+      return;
 
       try {
         //   const aiResponse = await mockAIChatAPI.sendMessage(input);
