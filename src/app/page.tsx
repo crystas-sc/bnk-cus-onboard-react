@@ -27,6 +27,64 @@ import {
 import { cn } from '@/lib/utils';
 
 
+const ProductPage = ({ title, description }: { title: string; description: string }) => {
+  return (
+    <div className="p-6 bg-gray-900 text-white rounded-lg shadow-lg">
+      <h1 className="text-3xl font-bold mb-4">{title}</h1>
+      <p className="text-gray-300">{description}</p>
+    </div>
+  );
+};
+
+export const TradeFinancePage = () => (
+  <ProductPage
+    title="Trade Finance"
+    description="Explore our Trade Finance solutions to support your international trade needs."
+  />
+);
+
+export const CashManagementPage = () => (
+  <ProductPage
+    title="Cash Management"
+    description="Optimize your cash flow with our comprehensive Cash Management services."
+  />
+);
+
+export const TradingPage = () => (
+  <ProductPage
+    title="Trading"
+    description="Access a wide range of trading options tailored to your business requirements."
+  />
+);
+
+export const LendingPage = () => (
+  <ProductPage
+    title="Lending"
+    description="Discover our flexible lending solutions to meet your financial goals."
+  />
+);
+
+export const SavingsPage = () => (
+  <ProductPage
+    title="Savings Account"
+    description="Secure your future with our high-interest savings accounts."
+  />
+);
+
+export const FixedAccountPage = () => (
+  <ProductPage
+    title="Fixed Account"
+    description="Earn guaranteed returns with our fixed deposit accounts."
+  />
+);
+
+export const CurrentAccountPage = () => (
+  <ProductPage
+    title="Current Account"
+    description="Manage your daily transactions with ease using our current accounts."
+  />
+);
+
 export default function Home() {
   return (
    <CorporateBankOnboardingApp />
@@ -140,7 +198,7 @@ const ChatWidget = ({ onRoute }: { onRoute?: (route: string) => void }) => {
       const message = structuredClone(msgJson);
       message.input = "Hi";
       socketRef.current.send(JSON.stringify(message));
-      setMessages((prevMessages) => [...prevMessages, { text: "Connecting... my sophisticated (and slightly slow) response will arrive in approximately 5 minutes.", sender: "ai" }]);
+      setMessages((prevMessages) => [...prevMessages, { text: "Connecting... my sophisticated (and slightly slow) response will arrive in approximately 2 minutes.", sender: "ai" }]);
         setIsAITyping(true);
     };
 
@@ -180,17 +238,47 @@ const ChatWidget = ({ onRoute }: { onRoute?: (route: string) => void }) => {
      
   }, [input]);
 
-  const handleSuggestionClick = (button) => {
-    if (button.type === 'input') {
+  const autoMessageOnButton=(button)=>{
     const userMessage = { text: button.label, sender: 'user' };
     setMessages((prevMessages) => [...prevMessages, userMessage]);
-      setIsAITyping(true);
-      const message = structuredClone(msgJson);
-      message.input = button.label;
-      socketRef.current.send(JSON.stringify(message));
-    } else if (button.type === 'path') {
-      onRoute?.(button.label);
-      setIsChatOpen(false);
+    setSuggestionButtons([]);
+    setIsAITyping(true);
+    const message = structuredClone(msgJson);
+    message.input = button.label;
+    socketRef.current.send(JSON.stringify(message));
+  }
+
+  const handleSuggestionClick = (button) => {
+    
+    if (button.type === 'input') {
+        autoMessageOnButton(button);
+    } else if (button.type === 'link') {
+        autoMessageOnButton(button);
+        switch (button.label.toLowerCase()) {
+            case 'trade finance':
+                onRoute('trade_finance');
+                break;
+            case 'cash management':
+                onRoute('cash_management');
+                break;
+            case 'trading':
+                onRoute('trading');
+                break;
+            case 'lending':
+                onRoute('lending');
+                break;
+            case 'savings account':
+                onRoute('savings');
+                break;
+            case 'fixed account':
+                onRoute('fixed_account');
+                break;
+            case 'current account':
+                onRoute('current_account');
+                break;
+            default:
+                onRoute('current_account');
+        }
     }
   };
 
@@ -802,7 +890,7 @@ const LoanApplicationForm = () => {
 
 // Main App Component
 const CorporateBankOnboardingApp = () => {
-  const [activeSection, setActiveSection] = useState<'home' | 'kyc' | 'account_setup' | 'loan_application' | 'chat'>('home');
+  const [activeSection, setActiveSection] = useState<'home' | 'kyc' | 'account_setup' | 'loan_application' | 'chat' | 'trade_finance' | 'cash_management' | 'trading' | 'lending' | 'savings' | 'fixed_account' | 'current_account'>('home');
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State for mobile menu
 
@@ -1046,6 +1134,76 @@ const CorporateBankOnboardingApp = () => {
                           <LoanApplicationForm />
                       </motion.div>
                   )}
+                  {activeSection === 'trade_finance' && (
+                      <motion.div
+                          key="trade_finance"
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                      >
+                          <TradeFinancePage />
+                      </motion.div>
+                  )}
+                  {activeSection === 'cash_management' && (
+                      <motion.div
+                          key="cash_management"
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                      >
+                          <CashManagementPage />
+                      </motion.div>
+                  )}
+                  {activeSection === 'trading' && (
+                      <motion.div
+                          key="trading"
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                      >
+                          <TradingPage />
+                      </motion.div>
+                  )}
+                  {activeSection === 'lending' && (
+                      <motion.div
+                          key="lending"
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                      >
+                          <LendingPage />
+                      </motion.div>
+                  )}
+                  {activeSection === 'savings' && (
+                      <motion.div
+                          key="savings"
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                      >
+                          <SavingsPage />
+                      </motion.div>
+                  )}
+                  {activeSection === 'fixed_account' && (
+                      <motion.div
+                          key="fixed_account"
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                      >
+                          <FixedAccountPage />
+                      </motion.div>
+                  )}
+                  {activeSection === 'current_account' && (
+                      <motion.div
+                          key="current_account"
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                      >
+                          <CurrentAccountPage />
+                      </motion.div>
+                  )}
               </AnimatePresence>
           </main>
 
@@ -1081,7 +1239,7 @@ const CorporateBankOnboardingApp = () => {
                       exit={{ opacity: 0, y: 50 }}
                       className="fixed bottom-20 right-4 z-50 w-full max-w-md h-[400px] bg-gray-900 rounded-lg shadow-2xl border border-gray-800"
                   >
-                      <ChatWidget onRoute={handleChatRoute} />
+                      <ChatWidget onRoute={setActiveSection}  />
                   </motion.div>
               )}
           </AnimatePresence>
